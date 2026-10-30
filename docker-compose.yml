@@ -1,0 +1,111 @@
+services:
+  # 1. Primary PostgreSQL 16 Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: medrynx-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_secure_password_2026
+      POSTGRES_DB: medrynx_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d medrynx_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - medrynx-network
+
+  # 2. IPFS Kubo Node (Decentralized Content-Addressed Storage)
+  ipfs:
+    image: ipfs/kubo:v0.26.0
+    container_name: medrynx-ipfs
+    restart: unless-stopped
+    environment:
+      LIBP2P_FORCE_PNET: 0
+    ports:
+      - "5001:5001" # IPFS API
+      - "8080:8080" # IPFS Gateway
+    volumes:
+      - ipfs_data:/data/ipfs
+    networks:
+      - medrynx-network
+
+  # 3. AI/ML Anomaly Scoring Service (FastAPI / Isolation Forest)
+  aiml:
+    build:
+      context: ./aiml
+      dockerfile: Dockerfile
+    container_name: medrynx-aiml
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - medrynx-network
+
+  # 4. Medrynx Core Backend API (Node / Express / TypeScript / KMS / ABAC)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: medrynx-backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: postgresql://postgres:postgres_secure_password_2026@postgres:5432/medrynx_db?schema=public
+      JWT_SECRET: medrynx_super_secret_jwt_key_2026_change_in_production
+      AES_SECRET_KEY: e4d909c290d0fb1ca068ffaddf22cbd0ffd83296c09dfb32525501869f06e0a3
+      IPFS_API_URL: http://ipfs:5001
+      IPFS_GATEWAY_URL: http://ipfs:8080/ipfs/
+      IPFS_MOCK_ENABLED: "false"
+      ML_SCORING_URL: http://aiml:8000/predict
+      ANOMALY_THRESHOLD: 65
+    depends_on:
+      postgres:
+        condition: service_healthy
+      aiml:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/v1/health/liveness"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - medrynx-network
+
+  # 5. Medrynx Web Client (React 19 / Vite / Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: medrynx-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - medrynx-network
+
+volumes:
+  postgres_data:
+    driver: local
+  ipfs_data:
+    driver: local
+
+networks:
+  medrynx-network:
+    driver: bridge

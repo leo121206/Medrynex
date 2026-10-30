@@ -1,0 +1,135 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-warm-beige: #F2E7D5;
+    --accent-sage: #A8CBA0;
+    --dark-green: #47634C;
+    --text-primary: #26352A;
+    --text-secondary: #66736A;
+    --white: #FFFFFF;
+    --light-sage: #E7F0E4;
+    --border-color: #DDE5DA;
+    --soft-beige: #F8F3EA;
+    --semantic-success: #5F8D65;
+    --semantic-warning: #D9A441;
+    --semantic-danger: #C85C5C;
+    --semantic-info: #668FA3;
+  }
+
+  body {
+    background-color: var(--bg-warm-beige);
+    color: var(--text-primary);
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+/* Custom UI Utilities */
+.medrynx-card {
+  background-color: #ffffff;
+  border: 1px solid #DDE5DA;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px -2px rgba(38, 53, 42, 0.05), 0 1px 4px -1px rgba(38, 53, 42, 0.03);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.medrynx-card-hover:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px -4px rgba(38, 53, 42, 0.08), 0 2px 6px -2px rgba(38, 53, 42, 0.04);
+}
+
+.btn-primary {
+  background-color: #A8CBA0;
+  color: #26352A;
+  font-weight: 600;
+  border-radius: 12px;
+  padding: 0.625rem 1.25rem;
+  transition: background-color 0.15s ease, transform 0.1s ease, opacity 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn-primary:hover {
+  background-color: #97ba8f;
+  transform: translateY(-0.5px);
+}
+
+.btn-secondary {
+  background-color: #F2E7D5;
+  color: #47634C;
+  font-weight: 600;
+  border-radius: 12px;
+  padding: 0.625rem 1.25rem;
+  border: 1px solid #DDE5DA;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn-secondary:hover {
+  background-color: #e6d8c3;
+  color: #26352A;
+}
+
+.btn-danger {
+  background-color: #fceded;
+  color: #C85C5C;
+  font-weight: 600;
+  border-radius: 12px;
+  padding: 0.625rem 1.25rem;
+  border: 1px solid #f8c4c4;
+  transition: background-color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn-danger:hover {
+  background-color: #C85C5C;
+  color: #ffffff;
+}
+
+.medrynx-input {
+  background-color: #ffffff;
+  border: 1px solid #DDE5DA;
+  border-radius: 12px;
+  padding-top: 0.625rem;
+  padding-bottom: 0.625rem;
+  padding-left: 0.875rem;
+  padding-right: 0.875rem;
+  color: #26352A;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  width: 100%;
+}
+
+.medrynx-input:focus {
+  border-color: #47634C;
+  box-shadow: 0 0 0 3px rgba(168, 203, 160, 0.35);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F2E7D5;
+}
+::-webkit-scrollbar-thumb {
+  background: #c3d4be;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #47634C;
+}

@@ -1,0 +1,540 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Multi-tenant healthcare organization boundaries (Hospitals, Clinics, Diagnostic Labs)
+model Organization {
+  id                 String              @id @default(uuid())
+  name               String
+  code               String              @unique
+  type               OrganizationType    @default(HOSPITAL)
+  address            String?
+  contactEmail       String?
+  status             String              @default("ACTIVE")
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  recordVersions     RecordVersion[]
+  records            RecordMetadata[]
+  trustRelationships TrustRelationship[]
+  users              User[]
+
+  @@map("organizations")
+}
+
+/// Central Users table supporting Patients, Doctors, and Hospital Admins
+model User {
+  id                     String                    @id @default(uuid())
+  email                  String                    @unique
+  passwordHash           String
+  name                   String
+  role                   UserRole                  @default(PATIENT)
+  phone                  String?
+  avatarUrl              String?
+  createdAt              DateTime                  @default(now())
+  updatedAt              DateTime                  @updatedAt
+  lastLogin              DateTime                  @default(now())
+  organizationId         String?
+  patientId              String?                   @unique
+  dob                    String?
+  gender                 String?
+  bloodGroup             String?
+  doctorId               String?                   @unique
+  licenseId              String?
+  specialization         String?
+  hospital               String?
+  verificationStatus     DoctorVerificationStatus? @default(PENDING)
+  adminId                String?                   @unique
+  department             String?
+  permissions            String[]                  @default([])
+  doctorGrants           AccessGrant[]             @relation("DoctorGrants")
+  patientGrants          AccessGrant[]             @relation("PatientGrants")
+  doctorAccessRequests   AccessRequest[]           @relation("DoctorRequests")
+  patientAccessRequests  AccessRequest[]           @relation("PatientRequests")
+  patientConsentBatches  ConsentBatch[]            @relation("PatientBatches")
+  devices                DeviceSession[]
+  patientDisputes        Dispute[]                 @relation("PatientDisputes")
+  doctorEmergencyEvents  EmergencyEvent[]          @relation("DoctorEmergencyEvents")
+  patientEmergencyEvents EmergencyEvent[]          @relation("PatientEmergencyEvents")
+  notifications          Notification[]
+  createdRecordVersions  RecordVersion[]           @relation("VersionCreator")
+  createdRecords         RecordMetadata[]          @relation("RecordCreator")
+  ownedRecords           RecordMetadata[]          @relation("PatientRecords")
+  refreshTokens          RefreshToken[]
+  subjectRelationships   TrustRelationship[]       @relation("SubjectRelationships")
+  targetRelationships    TrustRelationship[]       @relation("TargetRelationships")
+  organization           Organization?             @relation(fields: [organizationId], references: [id])
+
+  @@index([role])
+  @@index([email])
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([organizationId])
+  @@map("users")
+}
+
+/// Metadata for encrypted medical records stored on IPFS & anchored on-chain
+model RecordMetadata {
+  id                  String          @id @default(uuid())
+  patientId           String
+  organizationId      String?
+  title               String
+  category            RecordCategory
+  description         String?
+  fileType            RecordFileType  @default(PDF)
+  fileSize            String          @default("1.0 MB")
+  encryptedIpfsHash   String
+  sha256Hash          String
+  isEncrypted         Boolean         @default(true)
+  storageStatus       StorageStatus   @default(ENCRYPTED_AND_ANCHORED)
+  issuingClinician    String?
+  issuingHospital     String?
+  recordDate          DateTime        @default(now())
+  wrappedDek          String?
+  keyVersion          Int             @default(1)
+  encryptionAlgorithm String          @default("AES-256-GCM")
+  iv                  String?
+  authTag             String?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  creatorId           String?
+  currentVersion      Int             @default(1)
+  onChainRecordId     String?
+  onChainTxHash       String?
+  recordStatus        RecordStatus    @default(ACTIVE)
+  versions            RecordVersion[]
+  creator             User?           @relation("RecordCreator", fields: [creatorId], references: [id])
+  organization        Organization?   @relation(fields: [organizationId], references: [id])
+  patient             User            @relation("PatientRecords", fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@index([organizationId])
+  @@index([category])
+  @@index([sha256Hash])
+  @@index([creatorId])
+  @@index([recordStatus])
+  @@map("records_metadata")
+}
+
+/// Immutable historical versions of medical records preserving cryptographic provenance
+model RecordVersion {
+  id                  String         @id @default(uuid())
+  recordId            String
+  versionNumber       Int
+  title               String?
+  fileType            RecordFileType @default(PDF)
+  fileSize            String         @default("1.0 MB")
+  encryptedIpfsHash   String
+  sha256Hash          String
+  wrappedDek          String?
+  keyVersion          Int            @default(1)
+  encryptionAlgorithm String         @default("AES-256-GCM+ENVELOPE")
+  iv                  String?
+  authTag             String?
+  creatorId           String
+  organizationId      String?
+  changeSummary       String?
+  onChainTxHash       String?
+  createdAt           DateTime       @default(now())
+  creator             User           @relation("VersionCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  organization        Organization?  @relation(fields: [organizationId], references: [id])
+  record              RecordMetadata @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  @@unique([recordId, versionNumber])
+  @@index([recordId])
+  @@index([creatorId])
+  @@index([organizationId])
+  @@map("record_versions")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String   @unique
+  deviceId  String?
+  ipAddress String?
+  userAgent String?
+  isRevoked Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@map("refresh_tokens")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  metadata  Json?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@map("notifications")
+}
+
+model DeviceSession {
+  id         String   @id @default(uuid())
+  userId     String
+  deviceId   String
+  deviceName String?
+  lastIp     String?
+  lastActive DateTime @default(now())
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deviceId])
+  @@index([userId])
+  @@map("device_sessions")
+}
+
+/// Clinician requests for patient record access with ML anomaly assessment
+model AccessRequest {
+  id             String         @id @default(uuid())
+  patientId      String
+  doctorId       String
+  recordType     String
+  purpose        RequestPurpose @default(Diagnosis)
+  durationDays   Int            @default(7)
+  anomalyScore   Float          @default(0.0)
+  riskLevel      RiskLevel      @default(LOW)
+  riskAssessment Json?
+  isFlagged      Boolean        @default(false)
+  isBatched      Boolean        @default(false)
+  batchGroupId   String?
+  status         RequestStatus  @default(PENDING)
+  requestedAt    DateTime       @default(now())
+  reviewedAt     DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  accessGrants   AccessGrant[]
+  batchGroup     ConsentBatch?  @relation(fields: [batchGroupId], references: [id])
+  doctor         User           @relation("DoctorRequests", fields: [doctorId], references: [id], onDelete: Cascade)
+  patient        User           @relation("PatientRequests", fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([status])
+  @@index([isFlagged])
+  @@index([batchGroupId])
+  @@map("access_requests")
+}
+
+/// Scope-bound, time-limited dynamic consent grant anchored on-chain
+model AccessGrant {
+  id             String         @id @default(uuid())
+  requestId      String?
+  patientId      String
+  doctorId       String
+  recordType     String
+  purpose        String
+  accessStart    DateTime       @default(now())
+  accessExpiry   DateTime
+  status         ConsentStatus  @default(ACTIVE)
+  scopeNote      String?
+  onChainTxHash  String?
+  onChainGrantId String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  revokedAt      DateTime?
+  doctor         User           @relation("DoctorGrants", fields: [doctorId], references: [id], onDelete: Cascade)
+  patient        User           @relation("PatientGrants", fields: [patientId], references: [id], onDelete: Cascade)
+  accessRequest  AccessRequest? @relation(fields: [requestId], references: [id])
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([status])
+  @@index([accessExpiry])
+  @@map("access_grants")
+}
+
+/// Consent batches grouping low-risk, homogeneous access requests
+model ConsentBatch {
+  id           String          @id @default(uuid())
+  patientId    String
+  title        String
+  description  String?
+  recordType   String
+  purpose      String
+  durationDays Int             @default(14)
+  riskLevel    String          @default("Low")
+  status       BatchStatus     @default(PENDING)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  requests     AccessRequest[]
+  patient      User            @relation("PatientBatches", fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@index([status])
+  @@map("consent_batches")
+}
+
+/// Tiered break-glass emergency access events
+model EmergencyEvent {
+  id                   String               @id @default(uuid())
+  patientId            String
+  doctorId             String
+  hospital             String
+  verificationTier     EmergencyAccessLevel @default(PARTIAL)
+  recordsAccessed      Json
+  durationMinutes      Int                  @default(15)
+  reason               String
+  emergencyCode        String?
+  hospitalVerified     Boolean              @default(true)
+  verificationData     Json?
+  accessWindowStart    DateTime             @default(now())
+  autoRevokeTimestamp  DateTime
+  reconciliationStatus ReconciliationStatus @default(PENDING)
+  onChainTxHash        String?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  dispute              Dispute?
+  doctor               User                 @relation("DoctorEmergencyEvents", fields: [doctorId], references: [id], onDelete: Cascade)
+  patient              User                 @relation("PatientEmergencyEvents", fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([reconciliationStatus])
+  @@index([autoRevokeTimestamp])
+  @@map("emergency_events")
+}
+
+/// Post-emergency reconciliation disputes (immutable append-only audit trail)
+model Dispute {
+  id               String         @id @default(uuid())
+  patientId        String
+  emergencyEventId String         @unique
+  reason           DisputeReason  @default(Other)
+  details          String
+  attachedDocName  String?
+  status           DisputeStatus  @default(OPEN)
+  onChainTxHash    String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  emergencyEvent   EmergencyEvent @relation(fields: [emergencyEventId], references: [id], onDelete: Cascade)
+  patient          User           @relation("PatientDisputes", fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@index([emergencyEventId])
+  @@index([status])
+  @@map("disputes")
+}
+
+/// Fast denormalized mirror of all on-chain & system access events for audit dashboards (Recharts)
+model AuditLog {
+  id                 String          @id @default(uuid())
+  patientId          String?
+  actorId            String
+  actorName          String
+  actorRole          ActorRole       @default(DOCTOR)
+  hospital           String?
+  recordType         String
+  purpose            String
+  accessType         AuditAccessType @default(NORMAL)
+  status             AuditStatus     @default(COMPLETED)
+  ipAddress          String?
+  txHash             String?
+  onChainEventName   String?
+  onChainBlockNumber BigInt?
+  details            Json?
+  timestamp          DateTime        @default(now())
+
+  @@index([patientId])
+  @@index([actorId])
+  @@index([accessType])
+  @@index([status])
+  @@index([timestamp])
+  @@map("audit_log")
+}
+
+/// Explicit trust relationship between healthcare participants (Patient, Doctor, Organization, Care Team)
+model TrustRelationship {
+  id               String             @id @default(uuid())
+  relationshipType RelationshipType
+  status           RelationshipStatus @default(PENDING)
+  subjectId        String
+  targetUserId     String?
+  organizationId   String?
+  notes            String?
+  metadata         Json?
+  expiresAt        DateTime?
+  onChainTxHash    String?
+  onChainId        String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  organization     Organization?      @relation(fields: [organizationId], references: [id])
+  subject          User               @relation("SubjectRelationships", fields: [subjectId], references: [id], onDelete: Cascade)
+  targetUser       User?              @relation("TargetRelationships", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@index([subjectId])
+  @@index([targetUserId])
+  @@index([organizationId])
+  @@index([relationshipType])
+  @@index([status])
+  @@map("trust_relationships")
+}
+
+enum UserRole {
+  PATIENT
+  DOCTOR
+  NURSE
+  ORGANIZATION_ADMIN
+  AUDITOR
+  PLATFORM_ADMIN
+  ADMIN
+}
+
+enum OrganizationType {
+  HOSPITAL
+  CLINIC
+  DIAGNOSTIC_LAB
+  REGULATORY
+}
+
+enum DoctorVerificationStatus {
+  VERIFIED
+  PENDING
+  REJECTED
+  SUSPENDED
+}
+
+enum RecordCategory {
+  Laboratory
+  Medication
+  Imaging
+  Clinical
+  Vaccination
+  Genomic
+  Cardiology
+}
+
+enum RecordFileType {
+  PDF
+  JPG
+  PNG
+  DICOM
+  JSON
+}
+
+enum StorageStatus {
+  ENCRYPTED_AND_ANCHORED
+  PENDING
+  ARCHIVED
+}
+
+enum RecordStatus {
+  ACTIVE
+  SUPERSEDED
+  TOMBSTONED
+}
+
+enum RequestPurpose {
+  Diagnosis
+  Routine_Follow_up
+  Second_Opinion
+  Surgical_Prep
+  Emergency_Treatment
+  Prescription_Renewal
+}
+
+enum RiskLevel {
+  LOW
+  MODERATE
+  HIGH
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+  REVOKED
+}
+
+enum ConsentStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+}
+
+enum BatchStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum EmergencyAccessLevel {
+  PARTIAL
+  FULL
+}
+
+enum ReconciliationStatus {
+  PENDING
+  ACKNOWLEDGED
+  DISPUTED
+}
+
+enum DisputeReason {
+  Unauthorized_access
+  Incorrect_emergency_claim
+  Incorrect_record_accessed
+  Unexpected_access_duration
+  Other
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_INVESTIGATION
+  RESOLVED
+  REJECTED
+}
+
+enum AuditAccessType {
+  NORMAL
+  EMERGENCY
+  SYSTEM
+  REVOCATION
+  DISPUTE
+}
+
+enum AuditStatus {
+  COMPLETED
+  REVIEW_REQUIRED
+  REVOKED
+  DISPUTED
+  LOGGED
+}
+
+enum ActorRole {
+  PATIENT
+  DOCTOR
+  ADMIN
+  SYSTEM
+}
+
+enum RelationshipType {
+  PATIENT_PROVIDER
+  PATIENT_CARE_TEAM
+  PATIENT_ORGANIZATION
+  PROVIDER_ORGANIZATION
+}
+
+enum RelationshipStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+  REVOKED
+  EXPIRED
+}

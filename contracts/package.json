@@ -1,0 +1,31 @@
+{
+  "name": "medrynx-contracts",
+  "version": "1.0.0",
+  "description": "Smart contracts for Medrynx scope-bound dynamic consent and tiered emergency access control",
+  "main": "hardhat.config.cjs",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:hardhat": "hardhat run scripts/deploy.cjs --network hardhat",
+    "deploy:localhost": "hardhat run scripts/deploy.cjs --network localhost",
+    "deploy:ganache": "hardhat run scripts/deploy.cjs --network ganache"
+  },
+  "keywords": [
+    "solidity",
+    "ethereum",
+    "smart-contracts",
+    "ehr",
+    "dynamic-consent",
+    "break-glass",
+    "ganache"
+  ],
+  "author": "Medrynx Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.22.18"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.2.0"
+  }
+}

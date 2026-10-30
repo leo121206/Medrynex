@@ -1,0 +1,78 @@
+# ── Medrynx Monorepo Free-Tier Deployment Blueprint (Render.com) ─────────────
+# Place at repository root. Deploys:
+# 1. medrynx-backend-api (Express / TypeScript / Prisma / KMS / ABAC) — Free Node Web Service
+# 2. medrynx-aiml-service (FastAPI / IsolationForest Anomaly Scoring) — Free Python Web Service
+# 3. medrynx-postgres-db (Managed PostgreSQL 16) — Free PostgreSQL Instance
+
+services:
+  - type: web
+    name: medrynx-backend-api
+    runtime: node
+    plan: free
+    rootDir: Medrynx_Project/backend
+    buildCommand: npm install --include=dev && npx prisma generate && npm run build
+    startCommand: npx prisma migrate deploy && npm start
+    healthCheckPath: /api/v1/health/liveness
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: medrynx-postgres-db
+          property: connectionString
+      - key: DB_POOL_SIZE
+        value: "10"
+      - key: DB_POOL_TIMEOUT
+        value: "20"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: "7d"
+      - key: KMS_PROVIDER
+        value: "local"
+      - key: AES_SECRET_KEY
+        sync: false # Provide 64-character hex key (generate with: openssl rand -hex 32)
+      - key: INTERNAL_SERVICE_KEY
+        generateValue: true
+      - key: IPFS_MOCK_ENABLED
+        value: "false"
+      - key: IPFS_API_URL
+        sync: false # Set to external Kubo RPC endpoint or pinning service URL
+      - key: IPFS_GATEWAY_URL
+        value: "https://ipfs.io/ipfs/"
+      - key: ML_SCORING_URL
+        sync: false # Set to https://medrynx-aiml-service.onrender.com/predict
+      - key: GANACHE_RPC_URL
+        sync: false # Set to Sepolia / public EVM RPC URL (e.g., Alchemy/Infura free tier)
+      - key: DEPLOYER_PRIVATE_KEY
+        sync: false # Set to non-Hardhat EVM private key for testnet anchoring
+      - key: CONTRACT_ADDRESS
+        sync: false # Set to deployed MedrynxAccessRegistry address
+      - key: FRONTEND_URL
+        sync: false # Set to your deployed Vercel URL (e.g., https://medrynx.vercel.app)
+      - key: CORS_ORIGIN
+        sync: false # Set to comma-separated allowed origins (e.g., https://medrynx.vercel.app)
+      - key: STRICT_PROD_ENFORCE
+        value: "false"
+
+  - type: web
+    name: medrynx-aiml-service
+    runtime: python
+    plan: free
+    rootDir: medivault-aiml
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: API_HOST
+        value: 0.0.0.0
+      - key: INTERNAL_SERVICE_KEY
+        sync: false # Match INTERNAL_SERVICE_KEY from medrynx-backend-api
+
+databases:
+  - name: medrynx-postgres-db
+    plan: free
+    databaseName: medrynx_db
+    user: medrynx_user

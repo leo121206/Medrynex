@@ -1,0 +1,21 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Trained artifacts and generated data are reproducible; regenerate with
+# `python src/data_generator.py` and `python src/train.py`.
+models/*.joblib
+models/metadata.json
+data/raw/*.csv
+data/processed/*
+
+.pytest_cache/
+.coverage
+htmlcov/
+.env
+.DS_Store
+.idea/
+.vscode/
