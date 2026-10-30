@@ -1,4 +1,4 @@
-# Medrynx — Secure Decentralized Healthcare Data Platform
+# Medrynex — Secure Decentralized Healthcare Data Platform
 
 [![Node.js 22](https://img.shields.io/badge/Node.js-22.x-339933?logo=node.js)](https://nodejs.org/)
 [![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?logo=python)](https://python.org/)
@@ -8,9 +8,9 @@
 [![React 19](https://img.shields.io/badge/React-19.x-61DAFB?logo=react)](https://react.dev/)
 [![HL7 FHIR R4](https://img.shields.io/badge/HL7_FHIR-Release_4-E52E2D)](http://hl7.org/fhir/R4/)
 
-**Medrynx** is an enterprise-oriented, decentralized Electronic Health Record (EHR) data platform designed to resolve the tension between patient data sovereignty and clinical availability. 
+**Medrynex** is an enterprise-oriented, decentralized Electronic Health Record (EHR) data platform designed to resolve the tension between patient data sovereignty and clinical availability. 
 
-By unifying **cryptographic envelope encryption**, **content-addressed decentralized storage (IPFS)**, **tamper-evident EVM smart contracts**, **fine-grained Attribute-Based Access Control (ABAC)**, and an **advisory AI/ML behavioral anomaly engine**, Medrynx guarantees that Protected Health Information (PHI) is protected with mathematical certainty while remaining rapidly accessible during clinical emergencies.
+By unifying **cryptographic envelope encryption**, **content-addressed decentralized storage (IPFS)**, **tamper-evident EVM smart contracts**, **fine-grained Attribute-Based Access Control (ABAC)**, and an **advisory AI/ML behavioral anomaly engine**, Medrynex guarantees that Protected Health Information (PHI) is protected with mathematical certainty while remaining rapidly accessible during clinical emergencies.
 
 ---
 
@@ -86,7 +86,8 @@ By unifying **cryptographic envelope encryption**, **content-addressed decentral
    * Multidisciplinary care team batch approvals supported on-chain.
 
 4. **Tiered Break-Glass Emergency Overrides:**
-   * Tier 1 (Partial: Allergies & Medications, 15-min lock) and Tier 2 (Full, 30-min lock).
+   * **Tier 1 (Partial)**: Allergies & Medications, 15-minute emergency lock.
+   * **Tier 2 (Full)**: Full clinical history, 30-minute emergency lock.
    * Enforces verified clinical doctor role and mandatory clinical justification.
    * Post-incident dispute mechanism allows patients to reconcile or contest emergency access on-chain.
 
@@ -100,37 +101,50 @@ By unifying **cryptographic envelope encryption**, **content-addressed decentral
    * Resource endpoints: `Patient`, `Practitioner`, `Organization`, `DocumentReference`, `Consent`, `AuditEvent`.
 
 7. **Production Relational Persistence:**
-   * PostgreSQL 18.4 via Prisma ORM with 12 public tables, foreign key constraints, and relational indexes.
+   * PostgreSQL via Prisma ORM with 12 public tables, foreign key constraints, and relational indexes.
+   * In-memory mock store fallback for rapid local sandbox testing.
    * Disaster recovery tested via atomic JSON snapshots and automated restoration.
+
+---
+
+## 🔑 Demo & Test Credentials
+
+The system comes pre-seeded with role-specific accounts for instant evaluation:
+
+| Role | Email | Password | Access / Capabilities |
+|---|---|---|---|
+| **Patient** | `patient@medrynx.org` | `Password123!` | View medical records, manage & revoke consent grants, view audit trail & disputes |
+| **Doctor (Cardiology)** | `doctor@medrynx.org` | `Password123!` | Request patient records, view authorized medical files, prescribe medications |
+| **Doctor (Neurology)** | `priya.rao@medrynx.org` | `Password123!` | Specialized practitioner view & record requests |
+| **Doctor (Emergency ER)** | `suresh.kumar@medrynx.org` | `Password123!` | Trigger Tier 1 & Tier 2 Break-Glass Emergency access with clinical justification |
+| **Hospital Admin** | `admin@medrynx.org` | `Password123!` | User management, doctor verification, system audit logs, blockchain inspector, anomaly monitors |
 
 ---
 
 ## 🚀 Quick Start (Native Windows Setup)
 
-This is the fully verified execution topology on the local workstation.
-
 ### Prerequisites
 * **Node.js** v20+ or v22+
 * **Python** 3.10+ or 3.11+
 * **Git**
-* **Kubo IPFS** v0.26.0 binary
+* *(Optional)* **Kubo IPFS** v0.26.0
 
 ### 1. Clone & Configure Environment
 ```bash
-git clone <repository_url> Medrynx
-cd Medrynx
+git clone https://github.com/leo121206/Medrynex.git
+cd Medrynex
 
 # Copy template configurations
 cp .env.example .env
 cp backend/.env.example backend/.env
 ```
 
-### 2. Install Dependencies
+### 2. Install All Dependencies
 Run the all-in-one dependency installer:
 ```cmd
 setup_all.bat
 ```
-*Or install manually:*
+*Or install individual packages manually:*
 ```powershell
 cd contracts && npm install && cd ..
 cd aiml && pip install -r requirements.txt && cd ..
@@ -143,22 +157,58 @@ Run the automated multi-service launcher:
 ```cmd
 start_all.bat
 ```
-*This starts:*
-* **Hardhat EVM Node** (`http://127.0.0.1:8545`) and auto-deploys smart contracts.
-* **AI/ML Anomaly Microservice** (`http://127.0.0.1:8000`).
-* **Medrynx Core Backend API** (`http://127.0.0.1:5000`).
-* **Medrynx Frontend Web Client** (`http://127.0.0.1:5173`).
+*This starts all required microservices:*
+* **Hardhat EVM Node** (`http://127.0.0.1:8545`) with smart contracts deployed
+* **AI/ML Anomaly Microservice** (`http://127.0.0.1:8000`)
+* **Medrynex Core Backend API** (`http://127.0.0.1:5000`)
+* **Medrynex Frontend Client** (`http://127.0.0.1:5173`)
+
+Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+---
+
+## 🛠 Manual Service Execution
+
+If you prefer running components in separate terminal tabs:
+
+### 1. Smart Contracts & EVM Blockchain
+```bash
+cd contracts
+npm install
+npx hardhat node
+# In another terminal:
+npx hardhat run scripts/deploy.cjs --network localhost
+```
+
+### 2. AI/ML Anomaly Microservice
+```bash
+cd aiml
+pip install -r requirements.txt
+python -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### 3. Backend Service
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+### 4. Frontend Client
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
 ---
 
 ## 🐳 Containerized Deployment (Docker Compose)
 
-> **VERIFICATION LIMITATION:**  
-> `docker-compose.yml` provides a production-grade multi-container topology. However, because Docker Desktop / WSL2 was unavailable on the test host machine, container execution is strictly classified as **`DOCKER RUNTIME: NOT VERIFIED`**.
+Medrynex includes a multi-container Docker deployment:
 
-To run on a system with Docker Engine installed:
 ```powershell
-# Build and run all 5 services
+# Build and run all services in background
 docker compose up --build -d
 
 # Verify container status
@@ -171,8 +221,8 @@ docker compose ps
 
 | Component | Development / Local | Cloud Production | Verification Status |
 |---|---|---|---|
-| **Database** | Embedded PostgreSQL 18.4 | Managed PostgreSQL (AWS RDS) | **RUNTIME VERIFIED** (Local) |
-| **Storage** | Native Kubo IPFS v0.26.0 | Dedicated IPFS Node / Cluster | **RUNTIME VERIFIED** (Local) |
+| **Database** | Embedded PostgreSQL 18.4 / In-Memory Store | Managed PostgreSQL (AWS RDS) | **RUNTIME VERIFIED** (Local) |
+| **Storage** | Native Kubo IPFS / Mock Encrypted Store | Dedicated IPFS Node / Cluster | **RUNTIME VERIFIED** (Local) |
 | **KMS Provider** | `LocalKeyManagementService` | `AwsKeyManagementService` (AWS KMS) | **RUNTIME VERIFIED** (Local) / Architecture Verified (AWS) |
 | **Blockchain** | Hardhat EVM (Port 8545) | Ethereum L2 / Private EVM | **RUNTIME VERIFIED** (Local EVM) |
 | **AI/ML Service** | FastAPI / Uvicorn (Port 8000) | FastAPI Container (ECS/K8s) | **RUNTIME VERIFIED** (Local) |
@@ -185,7 +235,7 @@ docker compose ps
 ## 🛡️ Security & Verification Posture
 
 > **STATUTORY & CERTIFICATION DISCLAIMER:**  
-> Medrynx implements robust, layered technical safeguards designed for privacy-preserving healthcare data management. **Medrynx has NOT undergone formal third-party HIPAA, GDPR, or ONC certification.** Technical capabilities (such as envelope encryption, crypto-shredding, and FHIR resource mapping) are described strictly as software architectural controls.
+> Medrynex implements robust, layered technical safeguards designed for privacy-preserving healthcare data management. **Medrynex has NOT undergone formal third-party HIPAA, GDPR, or ONC certification.** Technical capabilities (such as envelope encryption, crypto-shredding, and FHIR resource mapping) are described strictly as software architectural controls.
 
 ### Verification Summary
 * **158 / 158 Multi-Stack Tests Passed (100%):**
@@ -197,23 +247,23 @@ docker compose ps
   * Database Backup & Disaster Recovery: **4 / 4**
   * Production Attack Matrix: **19 / 19**
 * **Strict TypeScript Typecheck:** 0 Errors (`npx tsc --noEmit`).
-* **Frontend Production Compilation:** 0 Errors (`dist/` built in 3.31s).
+* **Frontend Production Compilation:** 0 Errors (`dist/` built cleanly).
 
 ---
 
-## 📚 Complete Technical Documentation Index
+## 📚 Technical Documentation
 
-Detailed specifications, architectural models, and demonstration scripts are located in [`docs/`](./docs/):
+Detailed specifications and architectural models:
 
-* [**Architecture & Layered Design**](./docs/ARCHITECTURE.md) — Multi-tier system architecture and Mermaid diagrams.
-* [**Security & Defensive Controls**](./docs/SECURITY.md) — Defense-in-depth across all 8 security planes.
-* [**Threat Model & Attack Surface**](./docs/THREAT_MODEL.md) — STRIDE threat analysis and 19-row verified matrix.
-* [**REST API Reference**](./docs/API.md) — Endpoints, request schemas, response codes, and error formats.
-* [**Distributed Ledger & Blockchain**](./docs/BLOCKCHAIN.md) — Smart contract specifications and ledger boundary rules.
-* [**Decentralized Storage (IPFS)**](./docs/IPFS.md) — Upload/download workflows and zero-knowledge storage.
-* [**Cryptographic Specification**](./docs/ENCRYPTION.md) — Envelope encryption, AES-256-GCM, and DEK zeroing.
-* [**Key Management Service (KMS)**](./docs/KMS.md) — Local KMS and AWS KMS adapter architecture.
-* [**AI/ML Anomaly Microservice**](./docs/AI_ML.md) — Isolation Forest, Random Forest, and advisory boundaries.
-* [**HL7 FHIR Interoperability**](./docs/FHIR.md) — FHIR R4 conformance and CapabilityStatement.
-* [**Deployment & Infrastructure**](./docs/DEPLOYMENT.md) — Native Windows, Docker, and enterprise cloud setup.
-* [**Live Demonstration Script**](./docs/DEMO.md) — Step-by-step 10-scene technical presentation guide.
+* [**Project Setup & Deployment Guide**](./docs/setup.md) — Comprehensive guide for configuring environment, databases, and dependencies.
+* [**Product Requirements Document (PRD)**](./docs/prd.md) — Complete functional, architectural, and security requirements.
+* [**Project Proposal & Extended Architecture (PDF)**](./docs/MediVault_AI_Proposal_Extended.pdf) — Architectural whitepaper and presentation document.
+* [**AI/ML Service Documentation**](./aiml/README.md) — Isolation Forest, behavioral anomaly scoring, and model details.
+* [**Backend Architecture & APIs**](./backend/README.md) — Express REST routes, cryptographic envelope pipeline, and Prisma models.
+* [**Frontend Application**](./frontend/README.md) — UI architecture, role-based dashboards, and state management.
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).

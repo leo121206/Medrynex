@@ -1,32 +1,50 @@
-# React + TypeScript + Vite
+# Medrynex Frontend Client
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A responsive Single Page Application (SPA) built for patients, medical practitioners, and hospital administrators.
 
-Currently, two official plugins are available:
+## 🚀 Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Framework**: React 19 + TypeScript
+- **Build Tool**: Vite
+- **Styling**: Tailwind CSS, Lucide React Icons
+- **Data Visualization**: Recharts
+- **State & Context**: React Context (AuthContext, NotificationContext, ModalContext)
+- **Routing**: React Router DOM (v7)
 
-## React Compiler
+## 📁 Portals & Roles
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. **Patient Portal**:
+   - Medical record inspection with decrypted preview
+   - Dynamic scope-bound consent management & instant revocation
+   - Blockchain-anchored access log viewer
+   - Emergency access reconciliation & dispute reporting
 
-## Expanding the Oxlint configuration
+2. **Doctor Portal**:
+   - Patient search & record access requests
+   - Authorized records viewer & clinical document creation
+   - Prescription issuance
+   - Tier 1 & Tier 2 Break-Glass Emergency overrides
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+3. **Admin Portal**:
+   - Hospital-wide EHR audit history & access analytics
+   - AI/ML behavioral anomaly monitoring & risk assessment
+   - Blockchain transactions inspector
+   - Doctor verification and user directory management
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+## 🛠 Getting Started
+
+### Install Dependencies
+```bash
+npm install
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+### Run Development Server
+```bash
+npm run dev
+```
+The app will run at `http://localhost:5173`. Requests to `/api/v1` are proxied to `http://localhost:5000`.
+
+### Build for Production
+```bash
+npm run build
+```
